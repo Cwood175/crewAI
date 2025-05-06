@@ -54,7 +54,7 @@ class Knowledge(BaseModel):
         """
         if self.storage is None:
             raise ValueError("Storage is not initialized.")
-            
+
         self._check_and_reload_sources()
 
         results = self.storage.search(
@@ -63,7 +63,7 @@ class Knowledge(BaseModel):
             score_threshold=score_threshold,
         )
         return results
-        
+
     def _check_and_reload_sources(self):
         """Check if any sources have changed and reload them if necessary."""
         for source in self.sources:

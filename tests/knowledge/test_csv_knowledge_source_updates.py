@@ -1,13 +1,8 @@
-import os
 import time
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from crewai.knowledge.knowledge import Knowledge
 from crewai.knowledge.source.csv_knowledge_source import CSVKnowledgeSource
-from crewai.knowledge.storage.knowledge_storage import KnowledgeStorage
 
 
 @patch('crewai.knowledge.storage.knowledge_storage.KnowledgeStorage.search')

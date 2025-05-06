@@ -45,7 +45,7 @@ class BaseFileKnowledgeSource(BaseKnowledgeSource, ABC):
         self.validate_content()
         self._record_file_mtimes()
         self.content = self.load_content()
-        
+
     def _record_file_mtimes(self):
         """Record modification times of all files."""
         self._file_mtimes = {}
@@ -115,7 +115,7 @@ class BaseFileKnowledgeSource(BaseKnowledgeSource, ABC):
             )
 
         return [self.convert_to_path(path) for path in path_list]
-        
+
     def files_have_changed(self) -> bool:
         """Check if any of the files have been modified since they were last loaded."""
         for path in self.safe_file_paths:
