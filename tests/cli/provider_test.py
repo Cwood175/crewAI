@@ -1,4 +1,3 @@
-import json
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -19,7 +18,9 @@ def mock_response():
     """Mock a successful response from requests.get."""
     mock_resp = mock.Mock()
     mock_resp.headers = {"content-length": "100"}
-    mock_resp.iter_content.return_value = [b'{"model1": {"litellm_provider": "openai"}}']
+    mock_resp.iter_content.return_value = [
+        b'{"model1": {"litellm_provider": "openai"}}'
+    ]
     return mock_resp
 
 
@@ -32,7 +33,9 @@ def mock_cache_file():
 
 class TestProviderFunctions:
     @mock.patch("crewai.cli.provider.requests.get")
-    def test_fetch_provider_data_with_ssl_verify(self, mock_get, mock_response, mock_cache_file):
+    def test_fetch_provider_data_with_ssl_verify(
+        self, mock_get, mock_response, mock_cache_file
+    ):
         """Test that fetch_provider_data calls requests.get with verify=True by default."""
         mock_get.return_value = mock_response
 
@@ -42,7 +45,9 @@ class TestProviderFunctions:
         assert mock_get.call_args[1]["verify"] is True
 
     @mock.patch("crewai.cli.provider.requests.get")
-    def test_fetch_provider_data_without_ssl_verify(self, mock_get, mock_response, mock_cache_file):
+    def test_fetch_provider_data_without_ssl_verify(
+        self, mock_get, mock_response, mock_cache_file
+    ):
         """Test that fetch_provider_data calls requests.get with verify=False when skip_ssl_verify=True."""
         mock_get.return_value = mock_response
 
@@ -52,7 +57,9 @@ class TestProviderFunctions:
         assert mock_get.call_args[1]["verify"] is False
 
     @mock.patch("crewai.cli.provider.requests.get")
-    def test_fetch_provider_data_handles_request_exception(self, mock_get, mock_cache_file):
+    def test_fetch_provider_data_handles_request_exception(
+        self, mock_get, mock_cache_file
+    ):
         """Test that fetch_provider_data handles RequestException properly."""
         mock_get.side_effect = requests.RequestException("Test error")
 
@@ -95,7 +102,9 @@ class TestProviderFunctions:
         mock_get.assert_called_once()
 
     @mock.patch("builtins.open", new_callable=mock.mock_open, read_data="invalid json")
-    def test_read_cache_file_handles_json_decode_error(self, mock_file, mock_cache_file):
+    def test_read_cache_file_handles_json_decode_error(
+        self, mock_file, mock_cache_file
+    ):
         """Test that read_cache_file handles JSONDecodeError properly."""
         with mock.patch.object(Path, "exists", return_value=True):
             result = read_cache_file(mock_cache_file)
@@ -113,7 +122,9 @@ class TestProviderFunctions:
         assert result is None
         mock_file.assert_called_once_with(mock_cache_file, "r")
 
-    @mock.patch("builtins.open", new_callable=mock.mock_open, read_data='{"key": [1, 2, 3]}')
+    @mock.patch(
+        "builtins.open", new_callable=mock.mock_open, read_data='{"key": [1, 2, 3]}'
+    )
     def test_read_cache_file_handles_invalid_format(self, mock_file, mock_cache_file):
         """Test that read_cache_file handles invalid data format properly."""
         with mock.patch.object(Path, "exists", return_value=True):

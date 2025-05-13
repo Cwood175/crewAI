@@ -1,4 +1,3 @@
-import asyncio
 from typing import cast
 from unittest.mock import Mock
 
@@ -54,7 +53,7 @@ class CalculatorTool(BaseTool):
             result = eval(expression, {"__builtins__": {}})
             return f"The result of {expression} is {result}"
         except Exception as e:
-            return f"Error calculating {expression}: {str(e)}"
+            return f"Error calculating {expression}: {e!s}"
 
 
 # Define a custom response format using Pydantic
@@ -146,12 +145,12 @@ def test_lite_agent_with_tools():
         "What is the population of Tokyo and how many people would that be per square kilometer if Tokyo's area is 2,194 square kilometers?"
     )
 
-    assert (
-        "21 million" in result.raw or "37 million" in result.raw
-    ), "Agent should find Tokyo's population"
-    assert (
-        "per square kilometer" in result.raw
-    ), "Agent should calculate population density"
+    assert "21 million" in result.raw or "37 million" in result.raw, (
+        "Agent should find Tokyo's population"
+    )
+    assert "per square kilometer" in result.raw, (
+        "Agent should calculate population density"
+    )
 
     received_events = []
 

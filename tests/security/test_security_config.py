@@ -66,11 +66,6 @@ def test_security_config_from_dict():
         "metadata": {"version": "1.0"}
     }
 
-    # Create a config dict with just the fingerprint
-    config_dict = {
-        "fingerprint": fingerprint_dict
-    }
-
     # Create config manually since from_dict has a specific implementation
     config = SecurityConfig()
 
@@ -82,7 +77,7 @@ def test_security_config_from_dict():
     assert config.fingerprint is not None
     assert isinstance(config.fingerprint, Fingerprint)
     assert config.fingerprint.uuid_str == fingerprint_dict["uuid_str"]
-    assert config.fingerprint.metadata == fingerprint_dict["metadata"]
+    assert config.fingerprint.metadata == fingerprint_dict["metadata"]"
 
 
 def test_security_config_json_serialization():
