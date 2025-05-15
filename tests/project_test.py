@@ -1,6 +1,3 @@
-from typing import List
-from unittest.mock import patch
-
 import pytest
 
 from crewai.agent import Agent
@@ -44,8 +41,8 @@ class InternalCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
-    agents: List[BaseAgent]
-    tasks: List[Task]
+    agents: list[BaseAgent]
+    tasks: list[Task]
 
     @llm
     def local_llm(self):
@@ -92,9 +89,9 @@ def test_agent_memoization():
     first_call_result = crew.simple_agent()
     second_call_result = crew.simple_agent()
 
-    assert (
-        first_call_result is second_call_result
-    ), "Agent memoization is not working as expected"
+    assert first_call_result is second_call_result, (
+        "Agent memoization is not working as expected"
+    )
 
 
 def test_task_memoization():
@@ -102,9 +99,9 @@ def test_task_memoization():
     first_call_result = crew.simple_task()
     second_call_result = crew.simple_task()
 
-    assert (
-        first_call_result is second_call_result
-    ), "Task memoization is not working as expected"
+    assert first_call_result is second_call_result, (
+        "Task memoization is not working as expected"
+    )
 
 
 def test_crew_memoization():
@@ -112,35 +109,35 @@ def test_crew_memoization():
     first_call_result = crew.crew()
     second_call_result = crew.crew()
 
-    assert (
-        first_call_result is second_call_result
-    ), "Crew references should point to the same object"
+    assert first_call_result is second_call_result, (
+        "Crew references should point to the same object"
+    )
 
 
 def test_task_name():
     simple_task = SimpleCrew().simple_task()
-    assert (
-        simple_task.name == "simple_task"
-    ), "Task name is not inferred from function name as expected"
+    assert simple_task.name == "simple_task", (
+        "Task name is not inferred from function name as expected"
+    )
 
     custom_named_task = SimpleCrew().custom_named_task()
-    assert (
-        custom_named_task.name == "Custom"
-    ), "Custom task name is not being set as expected"
+    assert custom_named_task.name == "Custom", (
+        "Custom task name is not being set as expected"
+    )
 
 
 def test_agent_function_calling_llm():
     crew = InternalCrew()
     llm = crew.local_llm()
     obj_llm_agent = crew.researcher()
-    assert (
-        obj_llm_agent.function_calling_llm is llm
-    ), "agent's function_calling_llm is incorrect"
+    assert obj_llm_agent.function_calling_llm is llm, (
+        "agent's function_calling_llm is incorrect"
+    )
 
     str_llm_agent = crew.reporting_analyst()
-    assert (
-        str_llm_agent.function_calling_llm.model == "online_llm"
-    ), "agent's function_calling_llm is incorrect"
+    assert str_llm_agent.function_calling_llm.model == "online_llm", (
+        "agent's function_calling_llm is incorrect"
+    )
 
 
 def test_task_guardrail():
@@ -166,9 +163,9 @@ def test_after_kickoff_modification():
     # Assuming the crew execution returns a dict
     result = crew.crew().kickoff({"topic": "LLMs"})
 
-    assert (
-        "post processed" in result.raw
-    ), "After kickoff function did not modify outputs"
+    assert "post processed" in result.raw, (
+        "After kickoff function did not modify outputs"
+    )
 
 
 @pytest.mark.vcr(filter_headers=["authorization"])
@@ -182,8 +179,8 @@ def test_before_kickoff_with_none_input():
 def test_multiple_before_after_kickoff():
     @CrewBase
     class MultipleHooksCrew:
-        agents: List[BaseAgent]
-        tasks: List[Task]
+        agents: list[BaseAgent]
+        tasks: list[Task]
 
         agents_config = "config/agents.yaml"
         tasks_config = "config/tasks.yaml"

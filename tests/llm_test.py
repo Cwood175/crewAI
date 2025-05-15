@@ -2,7 +2,6 @@ import os
 from time import sleep
 from unittest.mock import MagicMock, patch
 
-import litellm
 import pytest
 from pydantic import BaseModel
 
@@ -222,7 +221,7 @@ def test_get_custom_llm_provider_gemini():
 
 def test_get_custom_llm_provider_openai():
     llm = LLM(model="gpt-4")
-    assert llm._get_custom_llm_provider() == None
+    assert llm._get_custom_llm_provider() is None
 
 
 def test_validate_call_params_supported():
@@ -342,14 +341,16 @@ def test_context_window_validation():
     assert llm.get_context_window_size() == int(200000 * CONTEXT_WINDOW_USAGE_RATIO)
 
     # Test invalid window size
-    with pytest.raises(ValueError) as excinfo:
-        with patch.dict(
+    with (
+        pytest.raises(ValueError) as excinfo,
+        patch.dict(
             "crewai.llm.LLM_CONTEXT_WINDOW_SIZES",
             {"test-model": 500},  # Below minimum
             clear=True,
-        ):
-            llm = LLM(model="test-model")
-            llm.get_context_window_size()
+        ),
+    ):
+        llm = LLM(model="test-model")
+        llm.get_context_window_size()
     assert "must be between 1024 and 2097152" in str(excinfo.value)
 
 
@@ -373,6 +374,7 @@ def get_weather_tool_schema():
         },
     }
 
+
 def test_context_window_exceeded_error_handling():
     """Test that litellm.ContextWindowExceededError is converted to LLMContextLengthExceededException."""
     from litellm.exceptions import ContextWindowExceededError
@@ -388,7 +390,7 @@ def test_context_window_exceeded_error_handling():
         mock_completion.side_effect = ContextWindowExceededError(
             "This model's maximum context length is 8192 tokens. However, your messages resulted in 10000 tokens.",
             model="gpt-4",
-            llm_provider="openai"
+            llm_provider="openai",
         )
 
         with pytest.raises(LLMContextLengthExceededException) as excinfo:
@@ -403,7 +405,7 @@ def test_context_window_exceeded_error_handling():
         mock_completion.side_effect = ContextWindowExceededError(
             "This model's maximum context length is 8192 tokens. However, your messages resulted in 10000 tokens.",
             model="gpt-4",
-            llm_provider="openai"
+            llm_provider="openai",
         )
 
         with pytest.raises(LLMContextLengthExceededException) as excinfo:

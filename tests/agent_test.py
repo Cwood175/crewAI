@@ -21,7 +21,6 @@ from crewai.utilities import RPMController
 from crewai.utilities.errors import AgentRepositoryError
 from crewai.utilities.events import crewai_event_bus
 from crewai.utilities.events.tool_usage_events import ToolUsageFinishedEvent
-from crewai.knowledge.storage.knowledge_storage import KnowledgeStorage
 
 
 def test_agent_llm_creation_with_env_vars():
@@ -310,7 +309,9 @@ def test_cache_hitting():
     def handle_tool_end(source, event):
         received_events.append(event)
 
-    with (patch.object(CacheHandler, "read") as read,):
+    with (
+        patch.object(CacheHandler, "read") as read,
+    ):
         read.return_value = "0"
         task = Task(
             description="What is 2 times 6? Ignore correctness and just return the result of the multiplication tool, you must use the tool.",
@@ -1157,7 +1158,7 @@ def test_agent_training_handler(crew_training_handler):
         verbose=True,
     )
     crew_training_handler().load.return_value = {
-        f"{str(agent.id)}": {"0": {"human_feedback": "good"}}
+        f"{agent.id!s}": {"0": {"human_feedback": "good"}}
     }
 
     result = agent._training_handler(task_prompt=task_prompt)
@@ -1834,7 +1835,11 @@ def test_agent_with_knowledge_sources_generate_search_query():
         assert "red" in result.raw.lower()
 
 
-@pytest.mark.vcr(record_mode='none', filter_headers=["authorization"],filter_query_parameters=["key"])
+@pytest.mark.vcr(
+    record_mode="none",
+    filter_headers=["authorization"],
+    filter_query_parameters=["key"],
+)
 def test_agent_with_knowledge_with_no_crewai_knowledge():
     mock_knowledge = MagicMock(spec=Knowledge)
 
@@ -1842,8 +1847,8 @@ def test_agent_with_knowledge_with_no_crewai_knowledge():
         role="Information Agent",
         goal="Provide information based on knowledge sources",
         backstory="You have access to specific knowledge sources.",
-        llm=LLM(model="openrouter/openai/gpt-4o-mini",api_key='ABC'),
-        knowledge = mock_knowledge
+        llm=LLM(model="openrouter/openai/gpt-4o-mini", api_key="ABC"),
+        knowledge=mock_knowledge,
     )
 
     # Create a task that requires the agent to use the knowledge
@@ -1858,7 +1863,11 @@ def test_agent_with_knowledge_with_no_crewai_knowledge():
     mock_knowledge.query.assert_called_once()
 
 
-@pytest.mark.vcr(record_mode='none', filter_headers=["authorization"],filter_query_parameters=["key"])
+@pytest.mark.vcr(
+    record_mode="none",
+    filter_headers=["authorization"],
+    filter_query_parameters=["key"],
+)
 def test_agent_with_only_crewai_knowledge():
     mock_knowledge = MagicMock(spec=Knowledge)
 
@@ -1866,33 +1875,7 @@ def test_agent_with_only_crewai_knowledge():
         role="Information Agent",
         goal="Provide information based on knowledge sources",
         backstory="You have access to specific knowledge sources.",
-        llm=LLM(model="openrouter/openai/gpt-4o-mini",api_key='abc')
-    )
-
-    # Create a task that requires the agent to use the knowledge
-    task = Task(
-        description="What is Vidit's favorite color?",
-        expected_output="Vidit's favorclearite color.",
-        agent=agent
-    )
-
-    crew = Crew(agents=[agent], tasks=[task],knowledge = mock_knowledge)
-    crew.kickoff()
-    mock_knowledge.query.assert_called_once()
-
-
-@pytest.mark.vcr(record_mode='none', filter_headers=["authorization"],filter_query_parameters=["key"])
-def test_agent_knowledege_with_crewai_knowledge():
-    crew_knowledge = MagicMock(spec=Knowledge)
-    agent_knowledge = MagicMock(spec=Knowledge)
-
-
-    agent = Agent(
-        role="Information Agent",
-        goal="Provide information based on knowledge sources",
-        backstory="You have access to specific knowledge sources.",
-        llm=LLM(model="openrouter/openai/gpt-4o-mini",api_key='abc'),
-        knowledge = agent_knowledge
+        llm=LLM(model="openrouter/openai/gpt-4o-mini", api_key="abc"),
     )
 
     # Create a task that requires the agent to use the knowledge
@@ -1902,7 +1885,36 @@ def test_agent_knowledege_with_crewai_knowledge():
         agent=agent,
     )
 
-    crew = Crew(agents=[agent], tasks=[task],knowledge = crew_knowledge)
+    crew = Crew(agents=[agent], tasks=[task], knowledge=mock_knowledge)
+    crew.kickoff()
+    mock_knowledge.query.assert_called_once()
+
+
+@pytest.mark.vcr(
+    record_mode="none",
+    filter_headers=["authorization"],
+    filter_query_parameters=["key"],
+)
+def test_agent_knowledege_with_crewai_knowledge():
+    crew_knowledge = MagicMock(spec=Knowledge)
+    agent_knowledge = MagicMock(spec=Knowledge)
+
+    agent = Agent(
+        role="Information Agent",
+        goal="Provide information based on knowledge sources",
+        backstory="You have access to specific knowledge sources.",
+        llm=LLM(model="openrouter/openai/gpt-4o-mini", api_key="abc"),
+        knowledge=agent_knowledge,
+    )
+
+    # Create a task that requires the agent to use the knowledge
+    task = Task(
+        description="What is Vidit's favorite color?",
+        expected_output="Vidit's favorclearite color.",
+        agent=agent,
+    )
+
+    crew = Crew(agents=[agent], tasks=[task], knowledge=crew_knowledge)
     crew.kickoff()
     agent_knowledge.query.assert_called_once()
     crew_knowledge.query.assert_called_once()
@@ -1996,7 +2008,7 @@ def test_crew_agent_executor_litellm_auth_error():
         )
 
     # Verify error handling messages
-    error_message = f"Error during LLM call: {str(mock_llm_call.side_effect)}"
+    error_message = f"Error during LLM call: {mock_llm_call.side_effect!s}"
     mock_printer.assert_any_call(
         content=error_message,
         color="red",
