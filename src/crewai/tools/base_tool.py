@@ -1,8 +1,8 @@
 import asyncio
-import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from inspect import signature
-from typing import Any, Callable, Type, get_args, get_origin
+from typing import Any, get_args, get_origin
 
 from pydantic import (
     BaseModel,
@@ -26,7 +26,7 @@ class BaseTool(BaseModel, ABC):
     """The unique name of the tool that clearly communicates its purpose."""
     description: str
     """Used to tell the model how/when/why to use the tool."""
-    args_schema: Type[PydanticBaseModel] = Field(
+    args_schema: type[PydanticBaseModel] = Field(
         default_factory=_ArgsSchemaPlaceholder, validate_default=True
     )
     """The schema for the arguments that the tool accepts."""
@@ -40,8 +40,8 @@ class BaseTool(BaseModel, ABC):
     @field_validator("args_schema", mode="before")
     @classmethod
     def _default_args_schema(
-        cls, v: Type[PydanticBaseModel]
-    ) -> Type[PydanticBaseModel]:
+        cls, v: type[PydanticBaseModel]
+    ) -> type[PydanticBaseModel]:
         if not isinstance(v, cls._ArgsSchemaPlaceholder):
             return v
 
@@ -254,7 +254,7 @@ def to_langchain(
 def tool(*args, result_as_answer=False):
     """
     Decorator to create a tool from a function.
-    
+
     Args:
         *args: Positional arguments, either the function to decorate or the tool name.
         result_as_answer: Flag to indicate if the tool result should be used as the final agent answer.

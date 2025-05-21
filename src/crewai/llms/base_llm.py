@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 
 class BaseLLM(ABC):
@@ -20,13 +20,13 @@ class BaseLLM(ABC):
     """
 
     model: str
-    temperature: Optional[float] = None
-    stop: Optional[List[str]] = None
+    temperature: float | None = None
+    stop: list[str] | None = None
 
     def __init__(
         self,
         model: str,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
     ):
         """Initialize the BaseLLM with default attributes.
 
@@ -43,11 +43,11 @@ class BaseLLM(ABC):
     @abstractmethod
     def call(
         self,
-        messages: Union[str, List[Dict[str, str]]],
-        tools: Optional[List[dict]] = None,
-        callbacks: Optional[List[Any]] = None,
-        available_functions: Optional[Dict[str, Any]] = None,
-    ) -> Union[str, Any]:
+        messages: str | list[dict[str, str]],
+        tools: list[dict] | None = None,
+        callbacks: list[Any] | None = None,
+        available_functions: dict[str, Any] | None = None,
+    ) -> str | Any:
         """Call the LLM with the given messages.
 
         Args:
@@ -71,7 +71,6 @@ class BaseLLM(ABC):
             TimeoutError: If the LLM request times out.
             RuntimeError: If the LLM request fails for other reasons.
         """
-        pass
 
     def supports_stop_words(self) -> bool:
         """Check if the LLM supports stop words.
