@@ -8,7 +8,7 @@ from crewai.flow.flow_trackable import FlowTrackable
 from crewai.flow import Flow
 
 
-class TestFlowTrackable(BaseModel, FlowTrackable):
+class TestFlowTrackable(FlowTrackable):
     """Test class that inherits from FlowTrackable for testing."""
     name: str = "test"
 
