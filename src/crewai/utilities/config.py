@@ -17,6 +17,8 @@ def process_config(
         Dict[str, Any]: The updated values dictionary.
     """
     config = values.get("config", {})
+    if not isinstance(config, dict):
+        return values
     if not config:
         return values
 
