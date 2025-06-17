@@ -17,7 +17,7 @@ def process_config(
         Dict[str, Any]: The updated values dictionary.
     """
     config = values.get("config", {})
-    if not config:
+    if not config or not isinstance(config, dict):
         return values
 
     # Copy values from config (originally from YAML) to the model's attributes.

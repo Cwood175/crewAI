@@ -231,7 +231,9 @@ class Task(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def process_model_config(cls, values):
-        return process_config(values, cls)
+        if isinstance(values, dict):
+            return process_config(values, cls)
+        return values
 
     @model_validator(mode="after")
     def validate_required_fields(self):
