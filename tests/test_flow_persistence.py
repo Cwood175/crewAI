@@ -1,10 +1,6 @@
 """Test flow state persistence functionality."""
 
 import os
-from typing import Dict
-
-import pytest
-from pydantic import BaseModel
 
 from crewai.flow.flow import Flow, FlowState, listen, start
 from crewai.flow.persistence import persist
@@ -23,7 +19,7 @@ def test_persist_decorator_saves_state(tmp_path, caplog):
     db_path = os.path.join(tmp_path, "test_flows.db")
     persistence = SQLiteFlowPersistence(db_path)
 
-    class TestFlow(Flow[Dict[str, str]]):
+    class TestFlow(Flow[dict[str, str]]):
         initial_state = dict()  # Use dict instance as initial state
 
         @start()
@@ -179,7 +175,7 @@ def test_persist_decorator_verbose_logging(tmp_path, caplog):
     persistence = SQLiteFlowPersistence(db_path)
 
     # Test with verbose=False (default)
-    class QuietFlow(Flow[Dict[str, str]]):
+    class QuietFlow(Flow[dict[str, str]]):
         initial_state = dict()
 
         @start()
@@ -196,7 +192,7 @@ def test_persist_decorator_verbose_logging(tmp_path, caplog):
     caplog.clear()
 
     # Test with verbose=True
-    class VerboseFlow(Flow[Dict[str, str]]):
+    class VerboseFlow(Flow[dict[str, str]]):
         initial_state = dict()
 
         @start()
