@@ -5,7 +5,6 @@ import uuid
 from datetime import datetime, timedelta
 
 import pytest
-from pydantic import ValidationError
 
 from crewai.security import Fingerprint
 
@@ -17,8 +16,7 @@ def test_fingerprint_creation_with_defaults():
     # Check that a UUID was generated
     assert fingerprint.uuid_str is not None
     # Check that it's a valid UUID
-    uuid_obj = uuid.UUID(fingerprint.uuid_str)
-    assert isinstance(uuid_obj, uuid.UUID)
+    assert isinstance(uuid.UUID(fingerprint.uuid_str), uuid.UUID)
 
     # Check that creation time was set
     assert isinstance(fingerprint.created_at, datetime)
