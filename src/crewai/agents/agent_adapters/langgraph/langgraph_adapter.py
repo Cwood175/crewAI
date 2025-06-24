@@ -1,4 +1,4 @@
-from typing import Any, AsyncIterable, Dict, List, Optional
+from typing import Any
 
 from pydantic import Field, PrivateAttr
 
@@ -22,7 +22,6 @@ from crewai.utilities.events.agent_events import (
 )
 
 try:
-    from langchain_core.messages import ToolMessage
     from langgraph.checkpoint.memory import MemorySaver
     from langgraph.prebuilt import create_react_agent
 
@@ -52,10 +51,10 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
         role: str,
         goal: str,
         backstory: str,
-        tools: Optional[List[BaseTool]] = None,
+        tools: list[BaseTool] | None = None,
         llm: Any = None,
         max_iterations: int = 10,
-        agent_config: Optional[Dict[str, Any]] = None,
+        agent_config: dict[str, Any] | None = None,
         **kwargs,
     ):
         """Initialize the LangGraph agent adapter."""
@@ -82,7 +81,7 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
         try:
             self._memory = MemorySaver()
 
-            converted_tools: List[Any] = self._tool_adapter.tools()
+            converted_tools: list[Any] = self._tool_adapter.tools()
             if self._agent_config:
                 self._graph = create_react_agent(
                     model=self.llm,
@@ -100,12 +99,10 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
                 )
 
         except ImportError as e:
-            self._logger.log(
-                "error", f"Failed to import LangGraph dependencies: {str(e)}"
-            )
+            self._logger.log("error", f"Failed to import LangGraph dependencies: {e!s}")
             raise
         except Exception as e:
-            self._logger.log("error", f"Error setting up LangGraph agent: {str(e)}")
+            self._logger.log("error", f"Error setting up LangGraph agent: {e!s}")
             raise
 
     def _build_system_prompt(self) -> str:
@@ -124,8 +121,8 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
     def execute_task(
         self,
         task: Any,
-        context: Optional[str] = None,
-        tools: Optional[List[BaseTool]] = None,
+        context: str | None = None,
+        tools: list[BaseTool] | None = None,
     ) -> str:
         """Execute a task using the LangGraph workflow."""
         self.create_agent_executor(tools)
@@ -187,7 +184,7 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
             return final_answer
 
         except Exception as e:
-            self._logger.log("error", f"Error executing LangGraph task: {str(e)}")
+            self._logger.log("error", f"Error executing LangGraph task: {e!s}")
             crewai_event_bus.emit(
                 self,
                 event=AgentExecutionErrorEvent(
@@ -198,11 +195,11 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
             )
             raise
 
-    def create_agent_executor(self, tools: Optional[List[BaseTool]] = None) -> None:
+    def create_agent_executor(self, tools: list[BaseTool] | None = None) -> None:
         """Configure the LangGraph agent for execution."""
         self.configure_tools(tools)
 
-    def configure_tools(self, tools: Optional[List[BaseTool]] = None) -> None:
+    def configure_tools(self, tools: list[BaseTool] | None = None) -> None:
         """Configure tools for the LangGraph agent."""
         if tools:
             all_tools = list(self.tools or []) + list(tools or [])
@@ -210,7 +207,7 @@ class LangGraphAgentAdapter(BaseAgentAdapter):
             available_tools = self._tool_adapter.tools()
             self._graph.tools = available_tools
 
-    def get_delegation_tools(self, agents: List[BaseAgent]) -> List[BaseTool]:
+    def get_delegation_tools(self, agents: list[BaseAgent]) -> list[BaseTool]:
         """Implement delegation tools support for LangGraph."""
         agent_tools = AgentTools(agents=agents)
         return agent_tools.tools()
