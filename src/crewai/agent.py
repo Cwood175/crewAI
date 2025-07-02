@@ -657,7 +657,7 @@ class Agent(BaseAgent):
 
         return description
 
-    def _inject_date_to_task(self, task):
+    def _inject_date_to_task(self, task: Any) -> None:
         """Inject the current date into the task description if inject_date is enabled."""
         if self.inject_date:
             from datetime import datetime
