@@ -379,9 +379,9 @@ class EventListener(BaseEventListener):
         @crewai_event_bus.on(LLMGuardrailStartedEvent)
         def on_llm_guardrail_started(source, event: LLMGuardrailStartedEvent):
             guardrail_name = (
-                event.guardrail[:50] + "..."
-                if len(event.guardrail) > 50
-                else event.guardrail
+                str(event.guardrail)[:50] + "..."
+                if len(str(event.guardrail)) > 50
+                else str(event.guardrail)
             )
 
             self.formatter.handle_guardrail_started(guardrail_name, event.retry_count)
