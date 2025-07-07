@@ -1,6 +1,6 @@
 name: Run Type Checks
 
-on: [pull_request]
+on: push
 
 permissions:
   contents: write

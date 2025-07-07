@@ -380,7 +380,7 @@ class LLM(BaseLLM):
         self.batch_mode = batch_mode
         self.batch_size = batch_size or 10
         self.batch_timeout = batch_timeout
-        self._batch_requests = []
+        self._batch_requests: List[Dict[str, Any]] = []
         self._current_batch_job = None
 
         litellm.drop_params = True
@@ -486,13 +486,13 @@ class LLM(BaseLLM):
         
         for message in formatted_messages:
             role = "user" if message["role"] == "user" else "model"
-            request["contents"].append({
+            request["contents"].append({  # type: ignore
                 "role": role,
                 "parts": [{"text": message["content"]}]
             })
         
         if tools:
-            request["tools"] = tools
+            request["tools"] = tools  # type: ignore
             
         return {"model": self.model.replace("gemini/", ""), "contents": request["contents"], "generationConfig": request["generationConfig"]}
 
@@ -522,7 +522,7 @@ class LLM(BaseLLM):
         genai.configure(api_key=self.api_key)
         
         start_time = time.time()
-        while time.time() - start_time < self.batch_timeout:
+        while self.batch_timeout is not None and time.time() - start_time < self.batch_timeout:
             batch_job = genai.get_batch_job(job_name)
             
             if batch_job.state in ["JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED"]:
