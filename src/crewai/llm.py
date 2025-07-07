@@ -380,7 +380,7 @@ class LLM(BaseLLM):
         self.batch_mode = batch_mode
         self.batch_size = batch_size or 10
         self.batch_timeout = batch_timeout
-        self._batch_requests = []
+        self._batch_requests: List[Dict[str, Any]] = []
         self._current_batch_job = None
 
         litellm.drop_params = True
@@ -474,8 +474,9 @@ class LLM(BaseLLM):
         
         formatted_messages = self._format_messages_for_provider(messages)
         
+        contents: List[Dict[str, Any]] = []
         request = {
-            "contents": [],
+            "contents": contents,
             "generationConfig": {
                 "temperature": self.temperature,
                 "topP": self.top_p,
@@ -492,7 +493,7 @@ class LLM(BaseLLM):
             })
         
         if tools:
-            request["tools"] = tools
+            request["tools"] = tools  # type: ignore[assignment]
             
         return {"model": self.model.replace("gemini/", ""), "contents": request["contents"], "generationConfig": request["generationConfig"]}
 
