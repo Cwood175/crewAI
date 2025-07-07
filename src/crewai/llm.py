@@ -380,7 +380,7 @@ class LLM(BaseLLM):
         self.batch_mode = batch_mode
         self.batch_size = batch_size or 10
         self.batch_timeout = batch_timeout
-        self._batch_requests = []
+        self._batch_requests: List[Dict[str, Any]] = []
         self._current_batch_job = None
 
         litellm.drop_params = True
@@ -490,9 +490,10 @@ class LLM(BaseLLM):
                 "role": role,
                 "parts": [{"text": message["content"]}]
             })
+        request["contents"] = list(request["contents"])
         
         if tools:
-            request["tools"] = tools
+            request["tools"] = list(tools)
             
         return {"model": self.model.replace("gemini/", ""), "contents": request["contents"], "generationConfig": request["generationConfig"]}
 
