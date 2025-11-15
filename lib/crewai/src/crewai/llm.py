@@ -1291,7 +1291,7 @@ class LLM(BaseLLM):
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         # --- 4) Handle O1 model special case (system messages not supported)
-        if "o1" in self.model.lower():
+        if "o1" in self.model.lower() and "/" in self.model:
             for message in messages:
                 if message.get("role") == "system":
                     msg_role: Literal["assistant"] = "assistant"
@@ -1419,7 +1419,7 @@ class LLM(BaseLLM):
                 )
 
         # Handle O1 models specially
-        if "o1" in self.model.lower():
+        if "o1" in self.model.lower() and "/" in self.model:
             formatted_messages = []
             for msg in messages:
                 # Convert system messages to assistant messages
