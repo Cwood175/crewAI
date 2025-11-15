@@ -385,9 +385,10 @@ class LLM(BaseLLM):
         if native_class and not is_litellm and provider in SUPPORTED_NATIVE_PROVIDERS:
             try:
                 # Remove 'provider' from kwargs if it exists to avoid duplicate keyword argument
-                kwargs_copy = {k: v for k, v in kwargs.items() if k != 'provider'}
+                kwargs_copy = {k: v for k, v in kwargs.items() if k != "provider"}
                 return cast(
-                    Self, native_class(model=model_string, provider=provider, **kwargs_copy)
+                    Self,
+                    native_class(model=model_string, provider=provider, **kwargs_copy),
                 )
             except NotImplementedError:
                 raise
@@ -400,7 +401,8 @@ class LLM(BaseLLM):
             raise ImportError("Fallback to LiteLLM is not available") from None
 
         instance = object.__new__(cls)
-        super(LLM, instance).__init__(model=model, is_litellm=True, **kwargs)
+        litellm_model = model if "/" in model or not provider else f"{provider}/{model}"
+        super(LLM, instance).__init__(model=litellm_model, is_litellm=True, **kwargs)
         instance.is_litellm = True
         return instance
 
@@ -496,13 +498,13 @@ class LLM(BaseLLM):
     def __init__(
         self,
         model: str,
-        timeout: float | int | None = None,
+        timeout: float | None = None,
         temperature: float | None = None,
         top_p: float | None = None,
         n: int | None = None,
         stop: str | list[str] | None = None,
         max_completion_tokens: int | None = None,
-        max_tokens: int | float | None = None,
+        max_tokens: float | None = None,
         presence_penalty: float | None = None,
         frequency_penalty: float | None = None,
         logit_bias: dict[int, float] | None = None,
@@ -1341,7 +1343,7 @@ class LLM(BaseLLM):
                     ):
                         self.additional_params["additional_drop_params"].append("stop")
                     else:
-                        self.additional_params = {"additional_drop_params": ["stop"]}
+                        self.additional_params["additional_drop_params"] = ["stop"]
 
                     logging.info("Retrying LLM call without the unsupported 'stop'")
 
