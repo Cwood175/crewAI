@@ -2,22 +2,17 @@
 
 import hashlib
 import json
-import os
-import tempfile
 from concurrent.futures import Future
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pydantic_core
 import pytest
-
 from crewai.agent import Agent
-from crewai.agents import CacheHandler
 from crewai.agents.cache import CacheHandler
-from crewai.agents.crew_agent_executor import CrewAgentExecutor
 from crewai.crew import Crew
 from crewai.crews.crew_output import CrewOutput
-from crewai.flow import Flow, listen, start
+from crewai.flow import Flow, start
 from crewai.knowledge.source.string_knowledge_source import StringKnowledgeSource
 from crewai.llm import LLM
 from crewai.memory.contextual.contextual_memory import ContextualMemory
@@ -568,9 +563,8 @@ def test_crew_with_delegating_agents(ceo, writer):
 def test_crew_with_delegating_agents_should_not_override_task_tools(ceo, writer):
     from typing import Type
 
-    from pydantic import BaseModel, Field
-
     from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
 
     class TestToolInput(BaseModel):
         """Input schema for TestTool."""
@@ -630,16 +624,15 @@ def test_crew_with_delegating_agents_should_not_override_task_tools(ceo, writer)
 def test_crew_with_delegating_agents_should_not_override_agent_tools(ceo, writer):
     from typing import Type
 
-    from pydantic import BaseModel, Field
-
     from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
 
     class TestToolInput(BaseModel):
         """Input schema for TestTool."""
 
         query: str = Field(..., description="Query to process")
 
-    class TestTool(BaseTool):
+    class TestToolForAgent(BaseTool):
         name: str = "Test Tool"
         description: str = "A test tool that just returns the input"
         args_schema: Type[BaseModel] = TestToolInput
@@ -648,7 +641,7 @@ def test_crew_with_delegating_agents_should_not_override_agent_tools(ceo, writer
             return f"Processed: {query}"
 
     new_ceo = ceo.model_copy()
-    new_ceo.tools = [TestTool()]
+    new_ceo.tools = [TestToolForAgent()]
 
     # Create a task with the test tool
     tasks = [
@@ -683,7 +676,7 @@ def test_crew_with_delegating_agents_should_not_override_agent_tools(ceo, writer
         tools = kwargs["tools"]
 
         assert any(
-            isinstance(tool, TestTool) for tool in new_ceo.tools
+            isinstance(tool, TestToolForAgent) for tool in new_ceo.tools
         ), "TestTool should be present"
         assert any(
             "delegate" in tool.name.lower() for tool in tools
@@ -694,16 +687,15 @@ def test_crew_with_delegating_agents_should_not_override_agent_tools(ceo, writer
 def test_task_tools_override_agent_tools(researcher):
     from typing import Type
 
-    from pydantic import BaseModel, Field
-
     from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
 
     class TestToolInput(BaseModel):
         """Input schema for TestTool."""
 
         query: str = Field(..., description="Query to process")
 
-    class TestTool(BaseTool):
+    class TestToolA(BaseTool):
         name: str = "Test Tool"
         description: str = "A test tool that just returns the input"
         args_schema: Type[BaseModel] = TestToolInput
@@ -711,7 +703,7 @@ def test_task_tools_override_agent_tools(researcher):
         def _run(self, query: str) -> str:
             return f"Processed: {query}"
 
-    class AnotherTestTool(BaseTool):
+    class AnotherTestToolA(BaseTool):
         name: str = "Another Test Tool"
         description: str = "Another test tool"
         args_schema: Type[BaseModel] = TestToolInput
@@ -721,14 +713,14 @@ def test_task_tools_override_agent_tools(researcher):
 
     # Set agent tools
     new_researcher = researcher.model_copy()
-    new_researcher.tools = [TestTool()]
+    new_researcher.tools = [TestToolA()]
 
     # Create task with different tools
     task = Task(
         description="Write a test task",
         expected_output="Test output",
         agent=new_researcher,
-        tools=[AnotherTestTool()],
+        tools=[AnotherTestToolA()],
     )
 
     crew = Crew(agents=[new_researcher], tasks=[task], process=Process.sequential)
@@ -737,12 +729,12 @@ def test_task_tools_override_agent_tools(researcher):
 
     # Verify task tools override agent tools
     assert len(task.tools) == 1  # AnotherTestTool
-    assert any(isinstance(tool, AnotherTestTool) for tool in task.tools)
-    assert not any(isinstance(tool, TestTool) for tool in task.tools)
+    assert any(isinstance(tool, AnotherTestToolA) for tool in task.tools)
+    assert not any(isinstance(tool, TestToolA) for tool in task.tools)
 
     # Verify agent tools remain unchanged
     assert len(new_researcher.tools) == 1
-    assert isinstance(new_researcher.tools[0], TestTool)
+    assert isinstance(new_researcher.tools[0], TestToolA)
 
 
 @pytest.mark.vcr(filter_headers=["authorization"])
@@ -752,14 +744,13 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
     """
     from typing import Type
 
-    from pydantic import BaseModel, Field
-
     from crewai.tools import BaseTool
+    from pydantic import BaseModel, Field
 
     class TestToolInput(BaseModel):
         query: str = Field(..., description="Query to process")
 
-    class TestTool(BaseTool):
+    class TestToolB(BaseTool):
         name: str = "Test Tool"
         description: str = "A test tool that just returns the input"
         args_schema: Type[BaseModel] = TestToolInput
@@ -767,7 +758,7 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
         def _run(self, query: str) -> str:
             return f"Processed: {query}"
 
-    class AnotherTestTool(BaseTool):
+    class AnotherTestToolB(BaseTool):
         name: str = "Another Test Tool"
         description: str = "Another test tool"
         args_schema: Type[BaseModel] = TestToolInput
@@ -778,7 +769,7 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
     # Set up agents with tools and allow_delegation
     researcher_with_delegation = researcher.model_copy()
     researcher_with_delegation.allow_delegation = True
-    researcher_with_delegation.tools = [TestTool()]
+    researcher_with_delegation.tools = [TestToolB()]
 
     writer_for_delegation = writer.model_copy()
 
@@ -787,7 +778,7 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
         description="Write a test task",
         expected_output="Test output",
         agent=researcher_with_delegation,
-        tools=[AnotherTestTool()],
+        tools=[AnotherTestToolB()],
     )
 
     crew = Crew(
@@ -812,10 +803,10 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
 
         # Confirm AnotherTestTool is present but TestTool is not
         assert any(
-            isinstance(tool, AnotherTestTool) for tool in used_tools
+            isinstance(tool, AnotherTestToolB) for tool in used_tools
         ), "AnotherTestTool should be present"
         assert not any(
-            isinstance(tool, TestTool) for tool in used_tools
+            isinstance(tool, TestToolB) for tool in used_tools
         ), "TestTool should not be present among used tools"
 
         # Confirm delegation tool(s) are present
@@ -825,7 +816,7 @@ def test_task_tools_override_agent_tools_with_allow_delegation(researcher, write
 
     # Finally, make sure the agent's original tools remain unchanged
     assert len(researcher_with_delegation.tools) == 1
-    assert isinstance(researcher_with_delegation.tools[0], TestTool)
+    assert isinstance(researcher_with_delegation.tools[0], TestToolB)
 
 
 @pytest.mark.vcr(filter_headers=["authorization"])
@@ -2856,9 +2847,10 @@ def test_crew_train_error(researcher, writer):
 
     with pytest.raises(TypeError) as e:
         crew.train()  # type: ignore purposefully throwing err
-        assert "train() missing 1 required positional argument: 'n_iterations'" in str(
-            e
-        )
+
+    assert "train() missing 1 required positional argument: 'n_iterations'" in str(
+        e.value
+    )
 
 
 def test__setup_for_training(researcher, writer):
@@ -3675,10 +3667,9 @@ def test_task_tools_preserve_code_execution_tools():
     """
     from typing import Type
 
+    from crewai.tools import BaseTool
     from crewai_tools import CodeInterpreterTool
     from pydantic import BaseModel, Field
-
-    from crewai.tools import BaseTool
 
     class TestToolInput(BaseModel):
         """Input schema for TestTool."""

@@ -25,17 +25,40 @@ def suppress_warnings():
         yield
 
 
-from opentelemetry import trace  # noqa: E402
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
-    OTLPSpanExporter,  # noqa: E402
-)
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource  # noqa: E402
-from opentelemetry.sdk.trace import TracerProvider  # noqa: E402
-from opentelemetry.sdk.trace.export import (  # noqa: E402
-    BatchSpanProcessor,
-    SpanExportResult,
-)
-from opentelemetry.trace import Span, Status, StatusCode  # noqa: E402
+def _load_opentelemetry():
+    try:
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
+        from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import (
+            BatchSpanProcessor,
+            SpanExportResult,
+        )
+        from opentelemetry.trace import Span, Status, StatusCode
+
+        globals().update(
+            {
+                "trace": trace,
+                "OTLPSpanExporter": OTLPSpanExporter,
+                "SERVICE_NAME": SERVICE_NAME,
+                "Resource": Resource,
+                "TracerProvider": TracerProvider,
+                "BatchSpanProcessor": BatchSpanProcessor,
+                "SpanExportResult": SpanExportResult,
+                "Span": Span,
+                "Status": Status,
+                "StatusCode": StatusCode,
+            }
+        )
+    except Exception:
+        # Opentelemetry is optional; if it's not installed, leave names undefined.
+        pass
+
+
+_load_opentelemetry()
 
 if TYPE_CHECKING:
     from crewai.crew import Crew
