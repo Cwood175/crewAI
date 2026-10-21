@@ -7,6 +7,7 @@ import time
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
+from datetime import datetime
 from typing import (
     Any,
     DefaultDict,
@@ -19,7 +20,7 @@ from typing import (
     Union,
     cast,
 )
-from datetime import datetime
+
 from dotenv import load_dotenv
 from litellm.types.utils import ChatCompletionDeltaToolCall
 from pydantic import BaseModel, Field
@@ -27,6 +28,7 @@ from pydantic import BaseModel, Field
 try:
     import google.generativeai as genai
     from google.generativeai.types import BatchCreateJobRequest, BatchJob
+
     GOOGLE_GENAI_AVAILABLE = True
 except ImportError:
     GOOGLE_GENAI_AVAILABLE = False
@@ -42,9 +44,9 @@ from crewai.utilities.events.llm_events import (
     LLMStreamChunkEvent,
 )
 from crewai.utilities.events.tool_usage_events import (
-    ToolUsageStartedEvent,
-    ToolUsageFinishedEvent,
     ToolUsageErrorEvent,
+    ToolUsageFinishedEvent,
+    ToolUsageStartedEvent,
 )
 
 with warnings.catch_warnings():
@@ -71,6 +73,7 @@ from crewai.utilities.exceptions.context_window_exceeding_exception import (
 
 class BatchJobStartedEvent:
     """Event emitted when a batch job is started."""
+
     def __init__(self, messages, tools=None, from_task=None, from_agent=None):
         self.messages = messages
         self.tools = tools
@@ -80,6 +83,7 @@ class BatchJobStartedEvent:
 
 class BatchJobCompletedEvent:
     """Event emitted when a batch job is completed."""
+
     def __init__(self, response, job_name, from_task=None, from_agent=None):
         self.response = response
         self.job_name = job_name
@@ -89,10 +93,12 @@ class BatchJobCompletedEvent:
 
 class BatchJobFailedEvent:
     """Event emitted when a batch job fails."""
+
     def __init__(self, error, from_task=None, from_agent=None):
         self.error = error
         self.from_task = from_task
         self.from_agent = from_agent
+
 
 load_dotenv()
 
@@ -116,7 +122,8 @@ class FilteredStream(io.TextIOBase):
                 "give feedback / get help" in lower_s
                 or "litellm.info:" in lower_s
                 or "litellm" in lower_s
-                or "Consider using a smaller input or implementing a text splitting strategy" in lower_s
+                or "Consider using a smaller input or implementing a text splitting strategy"
+                in lower_s
             ):
                 return 0
 
@@ -380,8 +387,8 @@ class LLM(BaseLLM):
         self.batch_mode = batch_mode
         self.batch_size = batch_size or 10
         self.batch_timeout = batch_timeout
-        self._batch_requests = []
-        self._current_batch_job = None
+        self._batch_requests: List[Dict[str, Any]] = []
+        self._current_batch_job: Optional[str] = None
 
         litellm.drop_params = True
 
@@ -464,53 +471,56 @@ class LLM(BaseLLM):
         return {k: v for k, v in params.items() if v is not None}
 
     def _prepare_batch_request(
-        self, 
-        messages: List[Dict[str, str]], 
-        tools: Optional[List[dict]] = None
+        self, messages: List[Dict[str, str]], tools: Optional[List[dict]] = None
     ) -> Dict[str, Any]:
         """Prepare a single request for batch processing."""
         if not self._is_gemini_model():
             raise ValueError("Batch mode is only supported for Gemini models")
-        
+
         formatted_messages = self._format_messages_for_provider(messages)
-        
-        request = {
-            "contents": [],
+
+        contents: List[Dict[str, Any]] = []
+        request: Dict[str, Any] = {
+            "contents": contents,
             "generationConfig": {
                 "temperature": self.temperature,
                 "topP": self.top_p,
                 "maxOutputTokens": self.max_tokens or self.max_completion_tokens,
-                "stopSequences": self.stop if isinstance(self.stop, list) else [self.stop] if self.stop else None,
-            }
+                "stopSequences": self.stop
+                if isinstance(self.stop, list)
+                else [self.stop]
+                if self.stop
+                else None,
+            },
         }
-        
+
         for message in formatted_messages:
             role = "user" if message["role"] == "user" else "model"
-            request["contents"].append({
-                "role": role,
-                "parts": [{"text": message["content"]}]
-            })
-        
+            contents.append({"role": role, "parts": [{"text": message["content"]}]})
+
         if tools:
             request["tools"] = tools
-            
-        return {"model": self.model.replace("gemini/", ""), "contents": request["contents"], "generationConfig": request["generationConfig"]}
+
+        return {
+            "model": self.model.replace("gemini/", ""),
+            "contents": request["contents"],
+            "generationConfig": request["generationConfig"],
+        }
 
     def _submit_batch_job(self, requests: List[Dict[str, Any]]) -> str:
         """Submit a batch job to Google GenAI API."""
         if not GOOGLE_GENAI_AVAILABLE:
             raise ImportError("google-generativeai is required for batch mode")
-        
+
         if not self.api_key:
             raise ValueError("API key is required for batch mode")
-        
+
         genai.configure(api_key=self.api_key)
-        
+
         batch_request = BatchCreateJobRequest(
-            requests=requests,
-            display_name=f"crewai-batch-{int(time.time())}"
+            requests=requests, display_name=f"crewai-batch-{int(time.time())}"
         )
-        
+
         batch_job = genai.create_batch_job(batch_request)
         return batch_job.name
 
@@ -518,32 +528,41 @@ class LLM(BaseLLM):
         """Poll batch job status until completion."""
         if not GOOGLE_GENAI_AVAILABLE:
             raise ImportError("google-generativeai is required for batch mode")
-        
+
         genai.configure(api_key=self.api_key)
-        
+
         start_time = time.time()
-        while time.time() - start_time < self.batch_timeout:
+        batch_timeout = (
+            float(self.batch_timeout) if self.batch_timeout is not None else 300.0
+        )
+        while time.time() - start_time < batch_timeout:
             batch_job = genai.get_batch_job(job_name)
-            
-            if batch_job.state in ["JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED"]:
+
+            if batch_job.state in [
+                "JOB_STATE_SUCCEEDED",
+                "JOB_STATE_FAILED",
+                "JOB_STATE_CANCELLED",
+            ]:
                 return batch_job
-            
+
             time.sleep(5)
-        
-        raise TimeoutError(f"Batch job {job_name} did not complete within {self.batch_timeout} seconds")
+
+        raise TimeoutError(
+            f"Batch job {job_name} did not complete within {int(batch_timeout)} seconds"
+        )
 
     def _retrieve_batch_results(self, job_name: str) -> List[str]:
         """Retrieve results from a completed batch job."""
         if not GOOGLE_GENAI_AVAILABLE:
             raise ImportError("google-generativeai is required for batch mode")
-        
+
         genai.configure(api_key=self.api_key)
-        
+
         batch_job = genai.get_batch_job(job_name)
-        
+
         if batch_job.state != "JOB_STATE_SUCCEEDED":
             raise RuntimeError(f"Batch job failed with state: {batch_job.state}")
-        
+
         results = []
         for response in genai.list_batch_job_responses(job_name):
             if response.response and response.response.candidates:
@@ -554,7 +573,7 @@ class LLM(BaseLLM):
                     results.append("")
             else:
                 results.append("")
-        
+
         return results
 
     def _handle_streaming_response(
@@ -676,7 +695,11 @@ class LLM(BaseLLM):
                     assert hasattr(crewai_event_bus, "emit")
                     crewai_event_bus.emit(
                         self,
-                        event=LLMStreamChunkEvent(chunk=chunk_content, from_task=from_task, from_agent=from_agent),
+                        event=LLMStreamChunkEvent(
+                            chunk=chunk_content,
+                            from_task=from_task,
+                            from_agent=from_agent,
+                        ),
                     )
             # --- 4) Fallback to non-streaming if no content received
             if not full_response.strip() and chunk_count == 0:
@@ -689,7 +712,11 @@ class LLM(BaseLLM):
                     "stream_options", None
                 )  # Remove stream_options for non-streaming call
                 return self._handle_non_streaming_response(
-                    non_streaming_params, callbacks, available_functions, from_task, from_agent
+                    non_streaming_params,
+                    callbacks,
+                    available_functions,
+                    from_task,
+                    from_agent,
                 )
 
             # --- 5) Handle empty response with chunks
@@ -774,7 +801,9 @@ class LLM(BaseLLM):
                 # Log token usage if available in streaming mode
                 self._handle_streaming_callbacks(callbacks, usage_info, last_chunk)
                 # Emit completion event and return response
-                self._handle_emit_call_events(full_response, LLMCallType.LLM_CALL, from_task, from_agent)
+                self._handle_emit_call_events(
+                    full_response, LLMCallType.LLM_CALL, from_task, from_agent
+                )
                 return full_response
 
             # --- 9) Handle tool calls if present
@@ -786,7 +815,9 @@ class LLM(BaseLLM):
             self._handle_streaming_callbacks(callbacks, usage_info, last_chunk)
 
             # --- 11) Emit completion event and return response
-            self._handle_emit_call_events(full_response, LLMCallType.LLM_CALL, from_task, from_agent)
+            self._handle_emit_call_events(
+                full_response, LLMCallType.LLM_CALL, from_task, from_agent
+            )
             return full_response
 
         except ContextWindowExceededError as e:
@@ -798,14 +829,18 @@ class LLM(BaseLLM):
             logging.error(f"Error in streaming response: {str(e)}")
             if full_response.strip():
                 logging.warning(f"Returning partial response despite error: {str(e)}")
-                self._handle_emit_call_events(full_response, LLMCallType.LLM_CALL, from_task, from_agent)
+                self._handle_emit_call_events(
+                    full_response, LLMCallType.LLM_CALL, from_task, from_agent
+                )
                 return full_response
 
             # Emit failed event and re-raise the exception
             assert hasattr(crewai_event_bus, "emit")
             crewai_event_bus.emit(
                 self,
-                event=LLMCallFailedEvent(error=str(e), from_task=from_task, from_agent=from_agent),
+                event=LLMCallFailedEvent(
+                    error=str(e), from_task=from_task, from_agent=from_agent
+                ),
             )
             raise Exception(f"Failed to get streaming response: {str(e)}")
 
@@ -952,7 +987,9 @@ class LLM(BaseLLM):
 
         # --- 5) If no tool calls or no available functions, return the text response directly
         if not tool_calls or not available_functions:
-            self._handle_emit_call_events(text_response, LLMCallType.LLM_CALL, from_task, from_agent)
+            self._handle_emit_call_events(
+                text_response, LLMCallType.LLM_CALL, from_task, from_agent
+            )
             return text_response
 
         # --- 6) Handle tool calls if present
@@ -961,7 +998,9 @@ class LLM(BaseLLM):
             return tool_result
 
         # --- 7) If tool call handling didn't return a result, emit completion event and return text response
-        self._handle_emit_call_events(text_response, LLMCallType.LLM_CALL, from_task, from_agent)
+        self._handle_emit_call_events(
+            text_response, LLMCallType.LLM_CALL, from_task, from_agent
+        )
         return text_response
 
     def _handle_tool_call(
@@ -1035,7 +1074,7 @@ class LLM(BaseLLM):
                     event=ToolUsageErrorEvent(
                         tool_name=function_name,
                         tool_args=function_args,
-                        error=f"Tool execution error: {str(e)}"
+                        error=f"Tool execution error: {str(e)}",
                     ),
                 )
         return None
@@ -1134,7 +1173,9 @@ class LLM(BaseLLM):
                 assert hasattr(crewai_event_bus, "emit")
                 crewai_event_bus.emit(
                     self,
-                    event=LLMCallFailedEvent(error=str(e), from_task=from_task, from_agent=from_agent),
+                    event=LLMCallFailedEvent(
+                        error=str(e), from_task=from_task, from_agent=from_agent
+                    ),
                 )
                 logging.error(f"LiteLLM call failed: {str(e)}")
                 raise
@@ -1151,7 +1192,7 @@ class LLM(BaseLLM):
         """Handle batch mode request for Gemini models."""
         if not self._is_gemini_model():
             raise ValueError("Batch mode is only supported for Gemini models")
-        
+
         assert hasattr(crewai_event_bus, "emit")
         crewai_event_bus.emit(
             self,
@@ -1162,24 +1203,24 @@ class LLM(BaseLLM):
                 from_agent=from_agent,
             ),
         )
-        
+
         try:
             batch_request = self._prepare_batch_request(messages, tools)
             self._batch_requests.append(batch_request)
-            
+
             if len(self._batch_requests) >= self.batch_size:
                 job_name = self._submit_batch_job(self._batch_requests)
                 self._current_batch_job = job_name
-                
+
                 self._poll_batch_job(job_name)
                 results = self._retrieve_batch_results(job_name)
-                
+
                 self._batch_requests.clear()
                 self._current_batch_job = None
-                
+
                 if results:
                     response = results[0]
-                    
+
                     assert hasattr(crewai_event_bus, "emit")
                     crewai_event_bus.emit(
                         self,
@@ -1190,13 +1231,13 @@ class LLM(BaseLLM):
                             from_agent=from_agent,
                         ),
                     )
-                    
+
                     return response
                 else:
                     raise RuntimeError("No results returned from batch job")
             else:
                 return "Batch request queued. Call with more requests to trigger batch processing."
-                
+
         except Exception as e:
             assert hasattr(crewai_event_bus, "emit")
             crewai_event_bus.emit(
@@ -1210,7 +1251,13 @@ class LLM(BaseLLM):
             logging.error(f"Batch request failed: {str(e)}")
             raise
 
-    def _handle_emit_call_events(self, response: Any, call_type: LLMCallType, from_task: Optional[Any] = None, from_agent: Optional[Any] = None):
+    def _handle_emit_call_events(
+        self,
+        response: Any,
+        call_type: LLMCallType,
+        from_task: Optional[Any] = None,
+        from_agent: Optional[Any] = None,
+    ):
         """Handle the events for the LLM call.
 
         Args:
@@ -1220,7 +1267,12 @@ class LLM(BaseLLM):
         assert hasattr(crewai_event_bus, "emit")
         crewai_event_bus.emit(
             self,
-            event=LLMCallCompletedEvent(response=response, call_type=call_type, from_task=from_task, from_agent=from_agent),
+            event=LLMCallCompletedEvent(
+                response=response,
+                call_type=call_type,
+                from_task=from_task,
+                from_agent=from_agent,
+            ),
         )
 
     def _format_messages_for_provider(

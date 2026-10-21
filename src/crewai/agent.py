@@ -1,7 +1,18 @@
 import shutil
 import subprocess
 import time
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 from pydantic import Field, InstanceOf, PrivateAttr, model_validator
 
@@ -33,10 +44,6 @@ from crewai.utilities.events.agent_events import (
     AgentExecutionStartedEvent,
 )
 from crewai.utilities.events.crewai_event_bus import crewai_event_bus
-from crewai.utilities.events.memory_events import (
-    MemoryRetrievalStartedEvent,
-    MemoryRetrievalCompletedEvent,
-)
 from crewai.utilities.events.knowledge_events import (
     KnowledgeQueryCompletedEvent,
     KnowledgeQueryFailedEvent,
@@ -44,6 +51,10 @@ from crewai.utilities.events.knowledge_events import (
     KnowledgeRetrievalCompletedEvent,
     KnowledgeRetrievalStartedEvent,
     KnowledgeSearchQueryFailedEvent,
+)
+from crewai.utilities.events.memory_events import (
+    MemoryRetrievalCompletedEvent,
+    MemoryRetrievalStartedEvent,
 )
 from crewai.utilities.llm_utils import create_llm
 from crewai.utilities.token_counter_callback import TokenCalcHandler
@@ -162,7 +173,7 @@ class Agent(BaseAgent):
     )
     guardrail: Optional[Union[Callable[[Any], Tuple[bool, Any]], str]] = Field(
         default=None,
-        description="Function or string description of a guardrail to validate agent output"
+        description="Function or string description of a guardrail to validate agent output",
     )
     guardrail_max_retries: int = Field(
         default=3, description="Maximum number of retries when guardrail fails"
@@ -657,8 +668,13 @@ class Agent(BaseAgent):
 
         return description
 
-    def _inject_date_to_task(self, task):
-        """Inject the current date into the task description if inject_date is enabled."""
+    def _inject_date_to_task(self, task: dict) -> None:
+        """Inject the current date into the task description if inject_date is enabled.
+
+        The task parameter is annotated as a dict to allow mypy to type-check the
+        function body. The implementation supports both dict-style tasks and
+        objects with a 'description' attribute.
+        """
         if self.inject_date:
             from datetime import datetime
 
@@ -681,7 +697,42 @@ class Agent(BaseAgent):
                     raise ValueError(f"Invalid date format: {self.date_format}")
 
                 current_date: str = datetime.now().strftime(self.date_format)
-                task.description += f"\n\nCurrent Date: {current_date}"
+
+                # Support both dict-based tasks and objects with a 'description' attribute
+                if isinstance(task, dict):
+                    desc = task.get("description", "") or ""
+                    task["description"] = desc + f"\n\nCurrent Date: {current_date}"
+                else:
+                    if hasattr(task, "description"):
+                        # Use getattr/setattr to avoid direct attribute access on an untyped value
+                        existing = getattr(task, "description", "") or ""
+                        try:
+                            setattr(
+                                task,
+                                "description",
+                                existing + f"\n\nCurrent Date: {current_date}",
+                            )
+                        except Exception:
+                            # If we cannot set the attribute, log a warning
+                            if hasattr(self, "_logger"):
+                                self._logger.log(
+                                    "warning",
+                                    "Failed to set 'description' on task when injecting date.",
+                                )
+                            else:
+                                print(
+                                    "Warning: Failed to set 'description' on task when injecting date."
+                                )
+                    else:
+                        if hasattr(self, "_logger"):
+                            self._logger.log(
+                                "warning",
+                                "Task has no 'description' to inject date into.",
+                            )
+                        else:
+                            print(
+                                "Warning: Task has no 'description' to inject date into."
+                            )
             except Exception as e:
                 if hasattr(self, "_logger"):
                     self._logger.log("warning", f"Failed to inject date: {str(e)}")
