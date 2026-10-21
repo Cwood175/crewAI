@@ -349,6 +349,8 @@ class LLM(BaseLLM):
         instance = object.__new__(cls)
         super(LLM, instance).__init__(model=model, is_litellm=True, **kwargs)
         instance.is_litellm = True
+        # Ensure provider is set on the fallback instance so litellm calls receive it
+        instance.provider = provider
         return instance
 
     @classmethod
@@ -494,9 +496,15 @@ class LLM(BaseLLM):
             messages = [{"role": "user", "content": messages}]
         formatted_messages = self._format_messages_for_provider(messages)
 
+        # Determine provider from model (default to 'openai' when no namespace is provided)
+        provider = self._get_custom_llm_provider()
+        if provider is None:
+            provider = self.model.partition("/")[0] if "/" in self.model else "openai"
+
         # --- 2) Prepare the parameters for the completion call
         params = {
             "model": self.model,
+            "provider": provider,
             "messages": formatted_messages,
             "timeout": self.timeout,
             "temperature": self.temperature,
@@ -562,6 +570,12 @@ class LLM(BaseLLM):
         # --- 2) Make sure stream is set to True and include usage metrics
         params["stream"] = True
         params["stream_options"] = {"include_usage": True}
+
+        # Ensure provider is present for litellm calls
+        provider = self._get_custom_llm_provider()
+        if provider is None:
+            provider = self.model.partition("/")[0] if "/" in self.model else "openai"
+        params["provider"] = provider
 
         try:
             # --- 3) Process each chunk in the stream
@@ -972,6 +986,13 @@ class LLM(BaseLLM):
             # length issues appropriately.
             if response_model:
                 params["response_model"] = response_model
+
+            # Ensure provider is present for litellm calls
+            provider = self._get_custom_llm_provider()
+            if provider is None:
+                provider = self.model.partition("/")[0] if "/" in self.model else "openai"
+            params["provider"] = provider
+
             response = litellm.completion(**params)
 
         except ContextWindowExceededError as e:
@@ -1365,7 +1386,8 @@ class LLM(BaseLLM):
         """
         if "/" in self.model:
             return self.model.partition("/")[0]
-        return None
+        return "openai"
+
 
     def _validate_call_params(self) -> None:
         """
