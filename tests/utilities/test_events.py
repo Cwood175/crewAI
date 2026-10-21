@@ -2,8 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest
-from pydantic import Field
-
 from crewai.agent import Agent
 from crewai.agents.crew_agent_executor import CrewAgentExecutor
 from crewai.crew import Crew
@@ -48,12 +46,15 @@ from crewai.utilities.events.task_events import (
 from crewai.utilities.events.tool_usage_events import (
     ToolUsageErrorEvent,
 )
+from pydantic import Field
 
 
 @pytest.fixture(scope="module")
 def vcr_config(request) -> dict:
     return {
         "cassette_library_dir": "tests/utilities/cassettes",
+        "record_mode": "once",
+        "filter_headers": ["authorization"],
     }
 
 

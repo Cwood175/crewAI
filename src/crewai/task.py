@@ -41,7 +41,6 @@ from crewai.tasks.task_output import TaskOutput
 from crewai.tools.base_tool import BaseTool
 from crewai.utilities.config import process_config
 from crewai.utilities.constants import NOT_SPECIFIED, _NotSpecified
-from crewai.utilities.guardrail import process_guardrail, GuardrailResult
 from crewai.utilities.converter import Converter, convert_to_model
 from crewai.utilities.events import (
     TaskCompletedEvent,
@@ -49,6 +48,7 @@ from crewai.utilities.events import (
     TaskStartedEvent,
 )
 from crewai.utilities.events.crewai_event_bus import crewai_event_bus
+from crewai.utilities.guardrail import GuardrailResult, process_guardrail
 from crewai.utilities.i18n import I18N
 from crewai.utilities.printer import Printer
 from crewai.utilities.string_utils import interpolate_only
@@ -79,7 +79,7 @@ class Task(BaseModel):
     used_tools: int = 0
     tools_errors: int = 0
     delegations: int = 0
-    
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
     i18n: I18N = I18N()
     name: Optional[str] = Field(default=None)
@@ -204,7 +204,6 @@ class Task(BaseModel):
             # Check return annotation if present, but don't require it
             return_annotation = sig.return_annotation
             if return_annotation != inspect.Signature.empty:
-
                 return_annotation_args = get_args(return_annotation)
                 if not (
                     get_origin(return_annotation) is tuple
@@ -231,6 +230,8 @@ class Task(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def process_model_config(cls, values):
+        if not isinstance(values, dict):
+            return values
         return process_config(values, cls)
 
     @model_validator(mode="after")
@@ -437,7 +438,7 @@ class Task(BaseModel):
                 guardrail_result = process_guardrail(
                     output=task_output,
                     guardrail=self._guardrail,
-                    retry_count=self.retry_count
+                    retry_count=self.retry_count,
                 )
                 if not guardrail_result.success:
                     if self.retry_count >= self.max_retries:

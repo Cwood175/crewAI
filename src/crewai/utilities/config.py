@@ -16,8 +16,19 @@ def process_config(
     Returns:
         Dict[str, Any]: The updated values dictionary.
     """
+    # Ensure values is a mapping to avoid AttributeError on .get
+    if not isinstance(values, dict):
+        raise TypeError(
+            f"process_config expected 'values' to be a dict, got {type(values)!r}"
+        )
+
     config = values.get("config", {})
     if not config:
+        return values
+
+    # If config exists but isn't a mapping, remove it and return values unchanged
+    if not isinstance(config, dict):
+        values.pop("config", None)
         return values
 
     # Copy values from config (originally from YAML) to the model's attributes.
