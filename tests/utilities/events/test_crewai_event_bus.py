@@ -1,7 +1,8 @@
 from unittest.mock import Mock
 
-from crewai.utilities.events.base_events import BaseEvent
-from crewai.utilities.events.crewai_event_bus import crewai_event_bus
+# Defer importing crewai modules until inside tests to avoid importing the package
+# at module import time (pytest collection). Import inside each test function where
+# BaseEvent and crewai_event_bus are needed.
 
 
 class TestEvent(BaseEvent):

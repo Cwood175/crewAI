@@ -14,11 +14,13 @@ from pydantic import BaseModel as PydanticBaseModel
 
 from crewai.tools.structured_tool import CrewStructuredTool
 
+
 class EnvVar(BaseModel):
     name: str
     description: str
     required: bool = True
-    default: Optional[str] = None
+    default: str | None = None
+
 
 class BaseTool(BaseModel, ABC):
     class _ArgsSchemaPlaceholder(PydanticBaseModel):
@@ -30,7 +32,7 @@ class BaseTool(BaseModel, ABC):
     """The unique name of the tool that clearly communicates its purpose."""
     description: str
     """Used to tell the model how/when/why to use the tool."""
-    env_vars: List[EnvVar] = []
+    env_vars: list[EnvVar] = []
     """List of environment variables used by the tool."""
     args_schema: Type[PydanticBaseModel] = Field(
         default_factory=_ArgsSchemaPlaceholder, validate_default=True
@@ -64,7 +66,7 @@ class BaseTool(BaseModel, ABC):
                 },
             },
         )
-        
+
     @field_validator("max_usage_count", mode="before")
     @classmethod
     def validate_max_usage_count(cls, v: int | None) -> int | None:
@@ -88,11 +90,11 @@ class BaseTool(BaseModel, ABC):
         # If _run is async, we safely run it
         if asyncio.iscoroutine(result):
             result = asyncio.run(result)
-            
+
         self.current_usage_count += 1
-        
+
         return result
-        
+
     def reset_usage_count(self) -> None:
         """Reset the current usage count to zero."""
         self.current_usage_count = 0
@@ -276,10 +278,12 @@ def to_langchain(
     return [t.to_structured_tool() if isinstance(t, BaseTool) else t for t in tools]
 
 
-def tool(*args, result_as_answer: bool = False, max_usage_count: int | None = None) -> Callable:
+def tool(
+    *args, result_as_answer: bool = False, max_usage_count: int | None = None
+) -> Callable:
     """
     Decorator to create a tool from a function.
-    
+
     Args:
         *args: Positional arguments, either the function to decorate or the tool name.
         result_as_answer: Flag to indicate if the tool result should be used as the final agent answer.
