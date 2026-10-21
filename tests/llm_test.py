@@ -2,10 +2,7 @@ import os
 from time import sleep
 from unittest.mock import MagicMock, patch
 
-import litellm
 import pytest
-from pydantic import BaseModel
-
 from crewai.agents.agent_builder.utilities.base_token_process import TokenProcess
 from crewai.llm import CONTEXT_WINDOW_USAGE_RATIO, LLM
 from crewai.utilities.events import (
@@ -13,6 +10,7 @@ from crewai.utilities.events import (
     LLMStreamChunkEvent,
 )
 from crewai.utilities.token_counter_callback import TokenCalcHandler
+from pydantic import BaseModel
 
 
 # TODO: This test fails without print statement, which makes me think that something is happening asynchronously that we need to eventually fix and dive deeper into at a later date
@@ -91,7 +89,7 @@ def test_llm_call_with_tool_and_string_input():
 
     def get_current_year() -> str:
         """Returns the current year as a string."""
-        from datetime import datetime
+        from datetime import datetime  # noqa: E402
 
         return str(datetime.now().year)
 
@@ -222,7 +220,7 @@ def test_get_custom_llm_provider_gemini():
 
 def test_get_custom_llm_provider_openai():
     llm = LLM(model="gpt-4")
-    assert llm._get_custom_llm_provider() == None
+    assert llm._get_custom_llm_provider() is None
 
 
 def test_validate_call_params_supported():
@@ -373,13 +371,13 @@ def get_weather_tool_schema():
         },
     }
 
+
 def test_context_window_exceeded_error_handling():
     """Test that litellm.ContextWindowExceededError is converted to LLMContextLengthExceededException."""
-    from litellm.exceptions import ContextWindowExceededError
-
     from crewai.utilities.exceptions.context_window_exceeding_exception import (
         LLMContextLengthExceededException,
     )
+    from litellm.exceptions import ContextWindowExceededError  # noqa: E402
 
     llm = LLM(model="gpt-4")
 
@@ -388,7 +386,7 @@ def test_context_window_exceeded_error_handling():
         mock_completion.side_effect = ContextWindowExceededError(
             "This model's maximum context length is 8192 tokens. However, your messages resulted in 10000 tokens.",
             model="gpt-4",
-            llm_provider="openai"
+            llm_provider="openai",
         )
 
         with pytest.raises(LLMContextLengthExceededException) as excinfo:
@@ -403,7 +401,7 @@ def test_context_window_exceeded_error_handling():
         mock_completion.side_effect = ContextWindowExceededError(
             "This model's maximum context length is 8192 tokens. However, your messages resulted in 10000 tokens.",
             model="gpt-4",
-            llm_provider="openai"
+            llm_provider="openai",
         )
 
         with pytest.raises(LLMContextLengthExceededException) as excinfo:
@@ -546,7 +544,7 @@ def assert_event_count(
 
 @pytest.fixture
 def mock_emit() -> MagicMock:
-    from crewai.utilities.events.crewai_event_bus import CrewAIEventsBus
+    from crewai.utilities.events.crewai_event_bus import CrewAIEventsBus  # noqa: E402
 
     with patch.object(CrewAIEventsBus, "emit") as mock_emit:
         yield mock_emit

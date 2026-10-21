@@ -1,22 +1,17 @@
 """Test Agent creation and execution basic functionality."""
 
-import hashlib
 import json
-import os
-import time
 from functools import partial
 from typing import Tuple, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
+from crewai import Agent, Crew, Process, Task
+from crewai.tasks.output_format import OutputFormat
+from crewai.tasks.task_output import TaskOutput
+from crewai.utilities.string_utils import interpolate_only
 from pydantic import BaseModel
 from pydantic_core import ValidationError
-
-from crewai import Agent, Crew, Process, Task
-from crewai.tasks.conditional_task import ConditionalTask
-from crewai.tasks.task_output import TaskOutput
-from crewai.utilities.converter import Converter
-from crewai.utilities.string_utils import interpolate_only
 
 
 def test_task_tool_reflect_agent_tools():
@@ -905,8 +900,6 @@ def test_interpolate_only_with_dict_inside_expected_output():
 
 
 def test_task_output_str_with_pydantic():
-    from crewai.tasks.output_format import OutputFormat
-
     class ScoreOutput(BaseModel):
         score: int
 
@@ -922,8 +915,6 @@ def test_task_output_str_with_pydantic():
 
 
 def test_task_output_str_with_json_dict():
-    from crewai.tasks.output_format import OutputFormat
-
     json_dict = {"score": 4}
     task_output = TaskOutput(
         description="Test task",
@@ -936,8 +927,6 @@ def test_task_output_str_with_json_dict():
 
 
 def test_task_output_str_with_raw():
-    from crewai.tasks.output_format import OutputFormat
-
     raw_output = "Raw task output"
     task_output = TaskOutput(
         description="Test task",
@@ -950,8 +939,6 @@ def test_task_output_str_with_raw():
 
 
 def test_task_output_str_with_pydantic_and_json_dict():
-    from crewai.tasks.output_format import OutputFormat
-
     class ScoreOutput(BaseModel):
         score: int
 
@@ -970,8 +957,6 @@ def test_task_output_str_with_pydantic_and_json_dict():
 
 
 def test_task_output_str_with_none():
-    from crewai.tasks.output_format import OutputFormat
-
     task_output = TaskOutput(
         description="Test task",
         agent="Test Agent",
@@ -1094,7 +1079,7 @@ def test_task_execution_times():
 
 
 def test_interpolate_with_list_of_strings():
-    task = Task(
+    _task = Task(
         description="Test list interpolation",
         expected_output="List: {items}",
     )
@@ -1112,7 +1097,7 @@ def test_interpolate_with_list_of_strings():
 
 
 def test_interpolate_with_list_of_dicts():
-    task = Task(
+    _task = Task(
         description="Test list of dicts interpolation",
         expected_output="People: {people}",
     )
@@ -1137,7 +1122,7 @@ def test_interpolate_with_list_of_dicts():
 
 
 def test_interpolate_with_nested_structures():
-    task = Task(
+    _task = Task(
         description="Test nested structures",
         expected_output="Company: {company}",
     )
@@ -1188,7 +1173,7 @@ def test_interpolate_with_special_characters():
 
 
 def test_interpolate_mixed_types():
-    task = Task(
+    _task = Task(
         description="Test mixed type interpolation",
         expected_output="Mixed: {data}",
     )
@@ -1214,7 +1199,7 @@ def test_interpolate_mixed_types():
 
 
 def test_interpolate_complex_combination():
-    task = Task(
+    _task = Task(
         description="Test complex combination",
         expected_output="Report: {report}",
     )
@@ -1243,7 +1228,7 @@ def test_interpolate_complex_combination():
 
 
 def test_interpolate_invalid_type_validation():
-    task = Task(
+    _task = Task(
         description="Test invalid type validation",
         expected_output="Should never reach here",
     )
@@ -1268,7 +1253,7 @@ def test_interpolate_invalid_type_validation():
 
 
 def test_interpolate_custom_object_validation():
-    task = Task(
+    _task = Task(
         description="Test custom object rejection",
         expected_output="Should never reach here",
     )
@@ -1304,7 +1289,7 @@ def test_interpolate_custom_object_validation():
 
 
 def test_interpolate_valid_complex_types():
-    task = Task(
+    _task = Task(
         description="Test valid complex types",
         expected_output="Validation should pass",
     )
@@ -1328,7 +1313,7 @@ def test_interpolate_valid_complex_types():
 
 
 def test_interpolate_edge_cases():
-    task = Task(
+    _task = Task(
         description="Test edge cases",
         expected_output="Edge case handling",
     )
@@ -1347,7 +1332,7 @@ def test_interpolate_edge_cases():
 
 
 def test_interpolate_valid_types():
-    task = Task(
+    _task = Task(
         description="Test valid types including null and boolean",
         expected_output="Should pass validation",
     )
@@ -1373,11 +1358,11 @@ def test_interpolate_valid_types():
 
 def test_task_with_no_max_execution_time():
     researcher = Agent(
-    role="Researcher",
-    goal="Make the best research and analysis on content about AI and AI agents",
-    backstory="You're an expert researcher, specialized in technology, software engineering, AI and startups. You work as a freelancer and is now working on doing research and analysis for a new customer.",
-    allow_delegation=False,
-    max_execution_time=None
+        role="Researcher",
+        goal="Make the best research and analysis on content about AI and AI agents",
+        backstory="You're an expert researcher, specialized in technology, software engineering, AI and startups. You work as a freelancer and is now working on doing research and analysis for a new customer.",
+        allow_delegation=False,
+        max_execution_time=None,
     )
 
     task = Task(
@@ -1386,7 +1371,7 @@ def test_task_with_no_max_execution_time():
         agent=researcher,
     )
 
-    with patch.object(Agent, "_execute_without_timeout", return_value = "ok") as execute:
+    with patch.object(Agent, "_execute_without_timeout", return_value="ok") as execute:
         result = task.execute_sync(agent=researcher)
         assert result.raw == "ok"
         execute.assert_called_once()
@@ -1395,6 +1380,7 @@ def test_task_with_no_max_execution_time():
 @pytest.mark.vcr(filter_headers=["authorization"])
 def test_task_with_max_execution_time():
     from crewai.tools import tool
+
     """Test that execution raises TimeoutError when max_execution_time is exceeded."""
 
     @tool("what amazing tool", result_as_answer=True)
@@ -1412,7 +1398,7 @@ def test_task_with_max_execution_time():
         ),
         allow_delegation=False,
         tools=[my_tool],
-        max_execution_time=4
+        max_execution_time=4,
     )
 
     task = Task(
@@ -1428,6 +1414,7 @@ def test_task_with_max_execution_time():
 @pytest.mark.vcr(filter_headers=["authorization"])
 def test_task_with_max_execution_time_exceeded():
     from crewai.tools import tool
+
     """Test that execution raises TimeoutError when max_execution_time is exceeded."""
 
     @tool("what amazing tool", result_as_answer=True)
@@ -1445,7 +1432,7 @@ def test_task_with_max_execution_time_exceeded():
         ),
         allow_delegation=False,
         tools=[my_tool],
-        max_execution_time=1
+        max_execution_time=1,
     )
 
     task = Task(
