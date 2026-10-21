@@ -1,6 +1,15 @@
-import shutil
-import subprocess
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
 from pydantic import Field, InstanceOf, PrivateAttr, model_validator
 
@@ -10,10 +19,8 @@ from crewai.agents.crew_agent_executor import CrewAgentExecutor
 from crewai.knowledge.knowledge import Knowledge
 from crewai.knowledge.source.base_knowledge_source import BaseKnowledgeSource
 from crewai.knowledge.utils.knowledge_utils import extract_knowledge_context
-from crewai.lite_agent import LiteAgent, LiteAgentOutput
 from crewai.llm import BaseLLM
 from crewai.memory.contextual.contextual_memory import ContextualMemory
-from crewai.security import Fingerprint
 from crewai.task import Task
 from crewai.tools import BaseTool
 from crewai.tools.agent_tools.agent_tools import AgentTools
@@ -24,7 +31,7 @@ from crewai.utilities.agent_utils import (
     parse_tools,
     render_text_description_and_args,
 )
-from crewai.utilities.constants import TRAINED_AGENTS_DATA_FILE, TRAINING_DATA_FILE
+from crewai.utilities.constants import TRAINING_DATA_FILE
 from crewai.utilities.converter import generate_model_description
 from crewai.utilities.events.agent_events import (
     AgentExecutionCompletedEvent,
@@ -33,9 +40,6 @@ from crewai.utilities.events.agent_events import (
 )
 from crewai.utilities.events.crewai_event_bus import crewai_event_bus
 from crewai.utilities.events.knowledge_events import (
-    KnowledgeQueryCompletedEvent,
-    KnowledgeQueryFailedEvent,
-    KnowledgeQueryStartedEvent,
     KnowledgeRetrievalCompletedEvent,
     KnowledgeRetrievalStartedEvent,
     KnowledgeSearchQueryFailedEvent,
@@ -92,7 +96,8 @@ class Agent(BaseAgent):
         description="Language model that will run the agent.", default=None
     )
     fallback_llms: Optional[List[Union[str, InstanceOf[BaseLLM], Any]]] = Field(
-        default=None, description="List of fallback language models to try if the primary LLM fails."
+        default=None,
+        description="List of fallback language models to try if the primary LLM fails.",
     )
     system_template: Optional[str] = Field(
         default=None, description="System format for the agent."
@@ -160,7 +165,7 @@ class Agent(BaseAgent):
     )
     guardrail: Optional[Union[Callable[[Any], Tuple[bool, Any]], str]] = Field(
         default=None,
-        description="Function or string description of a guardrail to validate agent output"
+        description="Function or string description of a guardrail to validate agent output",
     )
     guardrail_max_retries: int = Field(
         default=3, description="Maximum number of retries when guardrail fails"
@@ -178,7 +183,9 @@ class Agent(BaseAgent):
 
         self.llm = create_llm(self.llm)
         if self.fallback_llms:
-            self.fallback_llms = [create_llm(fallback_llm) for fallback_llm in self.fallback_llms]
+            self.fallback_llms = [
+                create_llm(fallback_llm) for fallback_llm in self.fallback_llms
+            ]
         if self.function_calling_llm and not isinstance(
             self.function_calling_llm, BaseLLM
         ):
