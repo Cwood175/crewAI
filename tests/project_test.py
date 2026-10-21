@@ -1,8 +1,6 @@
 from typing import List
-from unittest.mock import patch
 
 import pytest
-
 from crewai.agent import Agent
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from crewai.crew import Crew
