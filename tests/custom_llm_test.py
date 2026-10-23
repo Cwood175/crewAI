@@ -1,5 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
-from unittest.mock import Mock
+from typing import Any
 
 import pytest
 
@@ -158,11 +157,11 @@ class JWTAuthLLM(BaseLLM):
 
     def call(
         self,
-        messages: Union[str, List[Dict[str, str]]],
-        tools: Optional[List[dict]] = None,
-        callbacks: Optional[List[Any]] = None,
-        available_functions: Optional[Dict[str, Any]] = None,
-    ) -> Union[str, Any]:
+        messages: str | list[dict[str, str]],
+        tools: list[dict] | None = None,
+        callbacks: list[Any] | None = None,
+        available_functions: dict[str, Any] | None = None,
+    ) -> str | Any:
         """Record the call and return a predefined response."""
         self.calls.append(
             {
@@ -237,11 +236,11 @@ class TimeoutHandlingLLM(BaseLLM):
 
     def call(
         self,
-        messages: Union[str, List[Dict[str, str]]],
-        tools: Optional[List[dict]] = None,
-        callbacks: Optional[List[Any]] = None,
-        available_functions: Optional[Dict[str, Any]] = None,
-    ) -> Union[str, Any]:
+        messages: str | list[dict[str, str]],
+        tools: list[dict] | None = None,
+        callbacks: list[Any] | None = None,
+        available_functions: dict[str, Any] | None = None,
+    ) -> str | Any:
         """Simulate API calls with timeout handling and retry logic.
 
         Args:
