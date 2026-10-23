@@ -1,8 +1,7 @@
 import base64
 import re
-from pathlib import Path
 
-from crewai.flow.path_utils import safe_path_join, validate_path_exists
+from crewai.flow.path_utils import validate_path_exists
 
 
 class HTMLTemplateHandler:
@@ -53,23 +52,23 @@ class HTMLTemplateHandler:
             if "border" in item:
                 legend_items_html += f"""
                 <div class="legend-item">
-                <div class="legend-color-box" style="background-color: {item['color']}; border: 2px dashed {item['border']};"></div>
-                <div>{item['label']}</div>
+                <div class="legend-color-box" style="background-color: {item["color"]}; border: 2px dashed {item["border"]};"></div>
+                <div>{item["label"]}</div>
                 </div>
                 """
             elif item.get("dashed") is not None:
                 style = "dashed" if item["dashed"] else "solid"
                 legend_items_html += f"""
                 <div class="legend-item">
-                <div class="legend-{style}" style="border-bottom: 2px {style} {item['color']};"></div>
-                <div>{item['label']}</div>
+                <div class="legend-{style}" style="border-bottom: 2px {style} {item["color"]};"></div>
+                <div>{item["label"]}</div>
                 </div>
                 """
             else:
                 legend_items_html += f"""
                 <div class="legend-item">
-                <div class="legend-color-box" style="background-color: {item['color']};"></div>
-                <div>{item['label']}</div>
+                <div class="legend-color-box" style="background-color: {item["color"]};"></div>
+                <div>{item["label"]}</div>
                 </div>
                 """
         return legend_items_html

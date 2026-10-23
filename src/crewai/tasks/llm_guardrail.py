@@ -1,10 +1,9 @@
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from crewai.agent import Agent, LiteAgentOutput
 from crewai.llm import LLM
-from crewai.task import Task
 from crewai.tasks.task_output import TaskOutput
 
 
@@ -66,7 +65,7 @@ class LLMGuardrail:
 
         return result
 
-    def __call__(self, task_output: TaskOutput) -> Tuple[bool, Any]:
+    def __call__(self, task_output: TaskOutput) -> tuple[bool, Any]:
         """Validates the output of a task based on specified criteria.
 
         Args:
@@ -80,13 +79,13 @@ class LLMGuardrail:
 
         try:
             result = self._validate_output(task_output)
-            assert isinstance(
-                result.pydantic, LLMGuardrailResult
-            ), "The guardrail result is not a valid pydantic model"
+            assert isinstance(result.pydantic, LLMGuardrailResult), (
+                "The guardrail result is not a valid pydantic model"
+            )
 
             if result.pydantic.valid:
                 return True, task_output.raw
             else:
                 return False, result.pydantic.feedback
         except Exception as e:
-            return False, f"Error while validating the task output: {str(e)}"
+            return False, f"Error while validating the task output: {e!s}"
