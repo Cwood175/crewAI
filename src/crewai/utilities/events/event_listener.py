@@ -1,7 +1,8 @@
 from io import StringIO
-from typing import Any, Dict
+from typing import Any
 
 from pydantic import Field, PrivateAttr
+
 from crewai.llm import LLM
 from crewai.task import Task
 from crewai.telemetry.telemetry import Telemetry
@@ -23,16 +24,16 @@ from crewai.utilities.events.llm_events import (
     LLMStreamChunkEvent,
 )
 from crewai.utilities.events.llm_guardrail_events import (
-    LLMGuardrailStartedEvent,
     LLMGuardrailCompletedEvent,
+    LLMGuardrailStartedEvent,
 )
 from crewai.utilities.events.utils.console_formatter import ConsoleFormatter
 
 from .agent_events import (
     AgentExecutionCompletedEvent,
     AgentExecutionStartedEvent,
-    AgentLogsStartedEvent,
     AgentLogsExecutionEvent,
+    AgentLogsStartedEvent,
     LiteAgentExecutionCompletedEvent,
     LiteAgentExecutionErrorEvent,
     LiteAgentExecutionStartedEvent,
@@ -57,26 +58,25 @@ from .flow_events import (
     MethodExecutionFinishedEvent,
     MethodExecutionStartedEvent,
 )
+from .listeners.memory_listener import MemoryListener
+from .reasoning_events import (
+    AgentReasoningCompletedEvent,
+    AgentReasoningFailedEvent,
+    AgentReasoningStartedEvent,
+)
 from .task_events import TaskCompletedEvent, TaskFailedEvent, TaskStartedEvent
 from .tool_usage_events import (
     ToolUsageErrorEvent,
     ToolUsageFinishedEvent,
     ToolUsageStartedEvent,
 )
-from .reasoning_events import (
-    AgentReasoningStartedEvent,
-    AgentReasoningCompletedEvent,
-    AgentReasoningFailedEvent,
-)
-
-from .listeners.memory_listener import MemoryListener
 
 
 class EventListener(BaseEventListener):
     _instance = None
     _telemetry: Telemetry = PrivateAttr(default_factory=lambda: Telemetry())
     logger = Logger(verbose=True, default_color=EMITTER_COLOR)
-    execution_spans: Dict[Task, Any] = Field(default_factory=dict)
+    execution_spans: dict[Task, Any] = Field(default_factory=dict)
     next_chunk = 0
     text_stream = StringIO()
     knowledge_retrieval_in_progress = False
@@ -378,11 +378,15 @@ class EventListener(BaseEventListener):
 
         @crewai_event_bus.on(LLMGuardrailStartedEvent)
         def on_llm_guardrail_started(source, event: LLMGuardrailStartedEvent):
+            guardrail = event.guardrail
             guardrail_name = (
-                event.guardrail[:50] + "..."
-                if len(event.guardrail) > 50
-                else event.guardrail
+                guardrail
+                if isinstance(guardrail, str)
+                else str(getattr(guardrail, "__name__", guardrail))
             )
+
+            if len(guardrail_name) > 50:
+                guardrail_name = guardrail_name[:50] + "..."
 
             self.formatter.handle_guardrail_started(guardrail_name, event.retry_count)
 
